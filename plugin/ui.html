@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;font-family:Inter,Arial,sans-serif;color:var(--figma-color-text);background:var(--figma-color-bg)}
+h2{font-size:18px;margin:0 0 5px}
+.desc{font-size:12px;color:var(--figma-color-text-secondary);margin-bottom:16px}
+label{display:block;font-size:12px;font-weight:600;margin:12px 0 6px}
+textarea{width:100%;height:130px;resize:vertical;padding:10px;border:1px solid var(--figma-color-border);border-radius:6px;background:var(--figma-color-bg-secondary);color:var(--figma-color-text);font:11px/1.5 monospace}
+#cssInput{height:100px}
+.buttons{display:flex;gap:8px;margin-top:12px}
+button{flex:1;padding:11px;border:0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+#previewButton{color:var(--figma-color-text);background:var(--figma-color-bg-secondary);border:1px solid var(--figma-color-border)}
+#generateButton{color:white;background:#18a0fb}
+button:disabled{opacity:.5;cursor:wait}
+.preview-title{font-size:12px;font-weight:600;margin:16px 0 7px}
+#previewContainer{height:180px;overflow:auto;border:1px solid var(--figma-color-border);border-radius:6px;background:white}
+#previewFrame{display:block;width:1440px;height:1200px;border:0;transform:scale(.22);transform-origin:top left;margin-bottom:-936px}
+#status{min-height:18px;margin-top:10px;font-size:11px;color:var(--figma-color-text-secondary)}
+</style>
+</head>
+<body>
+<h2>HTML to Figma</h2>
+<div class="desc">Convert HTML, CSS and common Tailwind utilities into editable native Figma layers.</div>
+<label for="htmlInput">HTML</label>
+<textarea id="htmlInput" spellcheck="false"><div class="card">
+  <span class="badge">NEW</span>
+  <h1>Dashboard</h1>
+  <p>Welcome back! Your workspace is ready.</p>
+  <button class="button">Continue</button>
+</div></textarea>
+<label for="cssInput">CSS</label>
+<textarea id="cssInput" spellcheck="false">body{margin:0;background:#f3f4f6;font-family:Inter,Arial,sans-serif}
+.card{display:flex;flex-direction:column;align-items:flex-start;gap:16px;margin:48px;padding:24px;width:420px;background:white;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+h1{font-size:28px;font-weight:700;color:#111827;margin:0}
+p{font-size:15px;color:#6b7280;margin:0}
+.badge{font-size:12px;color:#2563eb;font-weight:700}
+.button{padding:12px 20px;background:#2563eb;color:white;border:0;border-radius:8px}</textarea>
+<div class="buttons">
+<button id="previewButton">Preview</button>
+<button id="generateButton">Generate Figma</button>
+</div>
+<div class="preview-title">Browser preview</div>
+<div id="previewContainer"><iframe id="previewFrame"></iframe></div>
+<div id="status">Ready.</div>
+<script>
+const $=id=>document.getElementById(id);
+const htmlInput=$("htmlInput"),cssInput=$("cssInput"),previewFrame=$("previewFrame");
+const statusBox=$("status"),previewButton=$("previewButton"),generateButton=$("generateButton");
+const WIDTH=1440,HEIGHT=1200;
+
+function tailwindCSS(html){
+  const box=document.createElement("div");box.innerHTML=html;
+  const classes=new Set();box.querySelectorAll("*").forEach(e=>e.classList.forEach(c=>classes.add(c)));
+  const space={"0":"0px","0.5":"2px","1":"4px","1.5":"6px","2":"8px","2.5":"10px","3":"12px","4":"16px","5":"20px","6":"24px","8":"32px","10":"40px","12":"48px","16":"64px","20":"80px","24":"96px"};
+  const colors={"white":"#fff","black":"#000","red-500":"#ef4444","blue-500":"#3b82f6","blue-600":"#2563eb","blue-700":"#1d4ed8","green-500":"#22c55e","purple-500":"#a855f7","gray-50":"#f9fafb","gray-100":"#f3f4f6","gray-200":"#e5e7eb","gray-300":"#d1d5db","gray-500":"#6b7280","gray-600":"#4b5563","gray-700":"#374151","gray-800":"#1f2937","gray-900":"#111827"};
+  const sizes={"xs":"12px","sm":"14px","base":"16px","lg":"18px","xl":"20px","2xl":"24px","3xl":"30px","4xl":"36px","5xl":"48px"};
+  const rules=[],add=(c,v)=>rules.push("."+CSS.escape(c)+"{"+v+"}");
+  const simple={flex:"display:flex","inline-flex":"display:inline-flex",grid:"display:grid",block:"display:block",hidden:"display:none",relative:"position:relative",absolute:"position:absolute","flex-row":"flex-direction:row","flex-col":"flex-direction:column","flex-wrap":"flex-wrap:wrap","flex-nowrap":"flex-wrap:nowrap","flex-1":"flex:1 1 0%","items-center":"align-items:center","items-start":"align-items:flex-start","items-end":"align-items:flex-end","items-stretch":"align-items:stretch","justify-center":"justify-content:center","justify-between":"justify-content:space-between","justify-around":"justify-content:space-around","justify-end":"justify-content:flex-end","text-left":"text-align:left","text-center":"text-align:center","text-right":"text-align:right","font-bold":"font-weight:700","font-semibold":"font-weight:600","font-medium":"font-weight:500","rounded":"border-radius:4px","rounded-md":"border-radius:6px","rounded-lg":"border-radius:8px","rounded-xl":"border-radius:12px","rounded-2xl":"border-radius:16px","rounded-full":"border-radius:9999px","shadow":"box-shadow:0 1px 3px rgba(0,0,0,.12)","shadow-md":"box-shadow:0 4px 6px rgba(0,0,0,.12)","shadow-lg":"box-shadow:0 10px 15px rgba(0,0,0,.12)","overflow-hidden":"overflow:hidden","w-full":"width:100%","h-full":"height:100%"};
+  for(const c of classes){
+    if(simple[c])add(c,simple[c]);
+    if(c.startsWith("bg-")&&colors[c.slice(3)])add(c,"background-color:"+colors[c.slice(3)]);
+    if(c.startsWith("text-")){let v=c.slice(5);if(sizes[v])add(c,"font-size:"+sizes[v]);else if(colors[v])add(c,"color:"+colors[v]);}
+    const match=c.match(/^(p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y)-(.+)$/);
+    if(match&&space[match[2]]){
+      const v=space[match[2]],map={p:`padding:${v}`,px:`padding-left:${v};padding-right:${v}`,py:`padding-top:${v};padding-bottom:${v}`,pt:`padding-top:${v}`,pb:`padding-bottom:${v}`,pl:`padding-left:${v}`,pr:`padding-right:${v}`,m:`margin:${v}`,mx:`margin-left:${v};margin-right:${v}`,my:`margin-top:${v};margin-bottom:${v}`,mt:`margin-top:${v}`,mb:`margin-bottom:${v}`,ml:`margin-left:${v}`,mr:`margin-right:${v}`,gap:`gap:${v}`,"gap-x":`column-gap:${v}`,"gap-y":`row-gap:${v}`};
+      add(c,map[match[1]]);
+    }
+  }
+  return rules.join("\n");
+}
+
+function documentHTML(){
+ return `<!doctype html><html><head><meta charset="utf-8"><style>
+ *{box-sizing:border-box}html,body{margin:0;padding:0;width:${WIDTH}px;min-height:${HEIGHT}px}
+ body{font-family:Inter,Arial,sans-serif}
+ ${tailwindCSS(htmlInput.value)}
+ ${cssInput.value}
+ </style></head><body>${htmlInput.value}</body></html>`;
+}
+function refresh(){previewFrame.srcdoc=documentHTML();}
+
+function computed(el){
+ const s=el.ownerDocument.defaultView.getComputedStyle(el);
+ return {
+  backgroundColor:s.backgroundColor,color:s.color,fontFamily:s.fontFamily.split(",")[0].replace(/['"]/g,"").trim(),
+  fontSize:s.fontSize,fontWeight:s.fontWeight,fontStyle:s.fontStyle,lineHeight:s.lineHeight,
+  letterSpacing:s.letterSpacing,textAlign:s.textAlign,opacity:s.opacity,
+  borderTopColor:s.borderTopColor,borderTopWidth:s.borderTopWidth,
+  borderTopLeftRadius:s.borderTopLeftRadius,borderTopRightRadius:s.borderTopRightRadius,
+  borderBottomRightRadius:s.borderBottomRightRadius,borderBottomLeftRadius:s.borderBottomLeftRadius,
+  boxShadow:s.boxShadow,overflow:s.overflow
+ };
+}
+function mainAlign(v){return v==="center"?"CENTER":v==="flex-end"||v==="end"?"MAX":v==="space-between"?"SPACE_BETWEEN":"MIN";}
+function crossAlign(v){return v==="center"?"CENTER":v==="flex-end"||v==="end"?"MAX":v==="baseline"?"BASELINE":"MIN";}
+
+function makeTextData(text, owner, rect, localX = 0, localY = 0, measuredWidth = 0, measuredHeight = 0) {
+ const win=owner.ownerDocument.defaultView;
+ const s=win.getComputedStyle(owner);
+ const display=s.display;
+ const inlineLike=display==="inline"||display==="inline-block"||display==="contents";
+ const width=inlineLike
+   ? Math.max(1, measuredWidth || rect.width || 1)
+   : Math.max(1, owner.getBoundingClientRect().width || measuredWidth || 1);
+ return {
+  type:"TEXT",name:"Text",text,
+  x:localX,y:localY,width,
+  height:Math.max(1,measuredHeight || rect.height || parseFloat(s.lineHeight) || parseFloat(s.fontSize)*1.4 || 20),
+  fontSize:parseFloat(s.fontSize)||16,
+  textSizing:inlineLike?"HUG":"WIDTH",
+  style:{
+   color:s.color,fontFamily:s.fontFamily.split(",")[0].replace(/['"]/g,"").trim(),
+   fontWeight:s.fontWeight,fontStyle:s.fontStyle,lineHeight:s.lineHeight,
+   letterSpacing:s.letterSpacing,textAlign:s.textAlign
+  }
+ };
+}
+
+function directTextData(owner, parentRect) {
+ const result=[],doc=owner.ownerDocument;
+ for(const child of owner.childNodes){
+  if(child.nodeType!==Node.TEXT_NODE||!child.textContent.trim())continue;
+  const range=doc.createRange();
+  range.selectNodeContents(child);
+  const rects=Array.from(range.getClientRects()).filter(r=>r.width>0&&r.height>0);
+  if(!rects.length)continue;
+  const bounds=rects.reduce((a,r)=>({
+   left:Math.min(a.left,r.left),top:Math.min(a.top,r.top),
+   right:Math.max(a.right,r.right),bottom:Math.max(a.bottom,r.bottom)
+  }),{left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity});
+  const ownerRect=owner.getBoundingClientRect();
+  const inlineLike=["inline","inline-block","contents"].includes(getComputedStyle(owner).display);
+  const measuredWidth=inlineLike ? bounds.right-bounds.left : owner.clientWidth || ownerRect.width;
+  result.push(makeTextData(
+   child.textContent,owner,
+   {width:bounds.right-bounds.left,height:bounds.bottom-bounds.top},
+   bounds.left-parentRect.left,bounds.top-parentRect.top,
+   measuredWidth,bounds.bottom-bounds.top
+  ));
+ }
+ return result;
+}
+function buildElement(el,parentRect,parentContext={}){
+ const tag=el.tagName.toLowerCase();
+ if(["script","style","link","meta","title","head","noscript"].includes(tag))return null;
+ const win=el.ownerDocument.defaultView,s=win.getComputedStyle(el);
+ if(s.display==="none"||s.visibility==="hidden")return null;
+ const rect=el.getBoundingClientRect();
+ if(rect.width<=0||rect.height<=0)return null;
+
+ const elementChildren=Array.from(el.children);
+ const hasElementChildren=elementChildren.length>0;
+ const ownText=(el.textContent||"").trim();
+
+ // Text-only elements become native Figma text nodes, not tiny wrapper frames.
+ if(!hasElementChildren && ownText){
+  const range=el.ownerDocument.createRange();
+  range.selectNodeContents(el);
+  const rs=Array.from(range.getClientRects()).filter(r=>r.width>0&&r.height>0);
+  const bounds=rs.length?rs.reduce((a,r)=>({
+   left:Math.min(a.left,r.left),top:Math.min(a.top,r.top),
+   right:Math.max(a.right,r.right),bottom:Math.max(a.bottom,r.bottom)
+  }),{left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity}):rect;
+  const inlineLike=["inline","inline-block","contents"].includes(s.display);
+  const flexRowItem=!!parentContext.flexRow;
+  const hugWidth=inlineLike||flexRowItem;
+  const width=hugWidth
+    ? Math.max(1,bounds.right-bounds.left)
+    : Math.max(1,el.clientWidth||rect.width);
+  return {
+   ...makeTextData(ownText,el,rect,rect.left-parentRect.left,rect.top-parentRect.top,width,bounds.bottom-bounds.top),
+   name:tag,
+   textSizing:hugWidth?"HUG":"WIDTH",
+   positioning:s.position==="absolute"||s.position==="fixed"?"ABSOLUTE":"AUTO",
+   sizing:{horizontal:hugWidth?"HUG":"FIXED",vertical:"HUG"}
+  };
+ }
+
+ const flex=s.display==="flex"||s.display==="inline-flex";
+ const grid=s.display==="grid"||s.display==="inline-grid";
+ const row=s.flexDirection.startsWith("row");
+ const layout={
+  mode:flex?(row?"HORIZONTAL":"VERTICAL"):"NONE",
+  primaryAlign:mainAlign(s.justifyContent),counterAlign:crossAlign(s.alignItems),
+  gap:parseFloat(row?s.columnGap:s.rowGap)||0,rowGap:parseFloat(s.rowGap)||0,
+  paddingTop:parseFloat(s.paddingTop)||0,paddingRight:parseFloat(s.paddingRight)||0,
+  paddingBottom:parseFloat(s.paddingBottom)||0,paddingLeft:parseFloat(s.paddingLeft)||0,
+  wrap:s.flexWrap==="wrap"||s.flexWrap==="wrap-reverse",
+  primarySizing:"FIXED",counterSizing:"FIXED"
+ };
+ const data={
+  type:"FRAME",name:tag,x:rect.left-parentRect.left,y:rect.top-parentRect.top,
+  width:rect.width,height:rect.height,style:computed(el),layout,
+  positioning:s.position==="absolute"||s.position==="fixed"?"ABSOLUTE":"AUTO",
+  sizing:{horizontal:"FIXED",vertical:"FIXED"},children:[]
+ };
+
+ // Preserve source DOM order: text nodes and element nodes are interleaved.
+ for(const child of el.childNodes){
+  if(child.nodeType===Node.TEXT_NODE){
+   const range=el.ownerDocument.createRange();
+   range.selectNodeContents(child);
+   const rs=Array.from(range.getClientRects()).filter(r=>r.width>0&&r.height>0);
+   if(rs.length){
+    const b=rs.reduce((a,r)=>({left:Math.min(a.left,r.left),top:Math.min(a.top,r.top),right:Math.max(a.right,r.right),bottom:Math.max(a.bottom,r.bottom)}),
+      {left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity});
+    const inlineLike=["inline","inline-block","contents"].includes(s.display);
+    data.children.push(makeTextData(child.textContent,el,
+      {width:b.right-b.left,height:b.bottom-b.top},
+      b.left-rect.left,b.top-rect.top,
+      inlineLike?b.right-b.left:(el.clientWidth||rect.width),b.bottom-b.top));
+   }
+  } else if(child.nodeType===Node.ELEMENT_NODE){
+   const childData=buildElement(child,rect);
+   if(childData)data.children.push(childData);
+  }
+ }
+
+ // CSS Grid is represented by measured-position frames until grid-track mapping is added.
+ if(grid)data.layout.mode="NONE";
+ return data;
+}
+function build(){
+ const doc=previewFrame.contentDocument,body=doc&&doc.body;
+ if(!body)throw new Error("Preview has not finished rendering.");
+ const bodyStyle=doc.defaultView.getComputedStyle(body);
+ const width=WIDTH,height=Math.max(HEIGHT,body.scrollHeight,doc.documentElement.scrollHeight);
+ const children=[];
+ const base={left:0,top:0};
+ for(const el of body.children){const node=buildElement(el,base,{});if(node)children.push(node);}
+ return {width,height,backgroundColor:bodyStyle.backgroundColor,children};
+}
+
+previewButton.addEventListener("click",()=>{refresh();statusBox.textContent="Preview refreshed.";});
+generateButton.addEventListener("click",()=>{
+ generateButton.disabled=true;statusBox.textContent="Rendering and measuring layout...";
+ refresh();
+ setTimeout(()=>{
+  try{
+   const result=build();
+   statusBox.textContent="Creating native Figma layers...";
+   parent.postMessage({pluginMessage:{type:"generate",name:"HTML Design",...result}},"*");
+  }catch(e){statusBox.textContent=e.message;generateButton.disabled=false;}
+ },500);
+});
+window.onmessage=e=>{
+ const msg=e.data.pluginMessage;if(!msg)return;
+ statusBox.textContent=msg.message||msg.type;
+ generateButton.disabled=false;
+};
+refresh();
+</script>
+</body>
+</html>
