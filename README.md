@@ -14,13 +14,40 @@ A small, local Figma development plugin for translating browser-rendered layouts
 
 ## What’s included
 
-| File | Purpose |
-|---|---|
-| `plugin/manifest.json` | Tells Figma how to load the development plugin |
-| `plugin/code.js` | Creates editable native Figma nodes |
-| `plugin/ui.html` | Plugin interface, HTML/CSS input, preview, and layout measurement |
+| File                   | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `plugin/manifest.json` | Tells Figma how to load the development plugin                    |
+| `plugin/code.js`       | Creates editable native Figma nodes                               |
+| `plugin/ui.html`       | Plugin interface, HTML/CSS input, preview, and layout measurement |
 
 This is the **UI and layout-only** build. It does not include prototype navigation wiring.
+
+## AI Prompt
+
+Copy this prompt to ChatGPT or your preferred AI tool to generate HTML and CSS for Figma:
+
+```txt
+Create a polished, Figma-friendly UI using **HTML and CSS** for my HTML-to-Figma plugin.
+
+**Design details:**
+[Describe what you want to build here]
+
+**Style / references:**
+[Colors, theme, layout, or reference links]
+
+**Target size:**
+[Desktop 1440px / Mobile 390px / Custom]
+
+**Requirements:**
+- Return complete HTML and CSS in separate code blocks.
+- Use plain HTML and CSS only. No React, JavaScript, or external dependencies.
+- Prioritize Flexbox and simple, predictable layouts.
+- Use clear widths and spacing to prevent text wrapping and alignment issues.
+- Keep the design clean and easy to convert into editable native Figma layers.
+- Avoid prototype wiring and interactive functionality.
+
+Make the result visually polished and compatible with browser-based HTML-to-Figma conversion.
+```
 
 ## Quick start
 
